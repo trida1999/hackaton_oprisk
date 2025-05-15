@@ -23,15 +23,15 @@ USE_MOCK_LLM = True
 # Создаем имитацию LLM-модели для тестирования без API ключа
 class MockLLM:
     """Мок-класс для имитации работы LLM-модели"""
-    
+
     def invoke(self, messages):
         """Имитация ответа от LLM"""
         # Анализируем последнее сообщение
         last_message = messages[-1].content if messages else ""
-        
+
         # Имитация задержки для реалистичности
         time.sleep(0.5)
-        
+
         # Возвращаем заглушку ответа в зависимости от контекста запроса
         if "название отделения" in last_message:
             return AIMessage(content="ВСП_1")
@@ -52,28 +52,28 @@ try:
         # или используйте переменные окружения для безопасности
         from openai import OpenAI
         import os
-        
+
         # Считываем ключ API из переменной окружения или используем резервный ключ
-        api_key = "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" #os.environ.get("OPENROUTER_API_KEY", "")
+        api_key = os.environ.get("OPENROUTER_API_KEY", "")
 
         llm = ChatOpenAI(
             openai_api_base="https://openrouter.ai/api/v1",
             openai_api_key=api_key,
             model_name="qwen/qwen3-4b:free"
         )
-        
+
         client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=api_key,
         )
-        
+
         print("Инициализирована реальная LLM модель")
     else:
         # Используем мок-модель для тестирования
         llm = MockLLM()
         client = None
         print("Инициализирована мок-модель LLM для тестирования")
-        
+
 except Exception as e:
     # В случае ошибки инициализации используем мок-модель
     print(f"Ошибка при инициализации LLM: {e}")
@@ -106,45 +106,45 @@ class VspDataTool:
         """
         # Создаем абсолютный путь из относительного
         self.data_dir = Path(__file__).parent / data_dir
-        
+
         # Проверяем существование директории
         if not self.data_dir.exists():
             self.data_dir.mkdir(parents=True, exist_ok=True)
             print(f"Создана директория для данных: {self.data_dir}")
-        
+
         # Устанавливаем пути к файлам. Сначала пробуем найти их в директории скрипта,
         # затем в текущей директории, если директория с данными не существует
         self.companies_file = None
         self.reviews_file = None
-        
+
         # Пробуем найти файлы в разных местах
         possible_paths = [
             self.data_dir / "companies.json",  # В папке data относительно скрипта
             Path("companies.json"),            # В текущей директории
             Path(__file__).parent / "companies.json"  # В директории скрипта
         ]
-        
+
         for path in possible_paths:
             if path.exists():
                 self.companies_file = path
                 break
-        
+
         possible_paths = [
             self.data_dir / "reviews.json",    # В папке data относительно скрипта
             Path("reviews.json"),              # В текущей директории
             Path(__file__).parent / "reviews.json"  # В директории скрипта
         ]
-        
+
         for path in possible_paths:
             if path.exists():
                 self.reviews_file = path
                 break
-        
+
         # Если файлы не найдены, устанавливаем пути по умолчанию
         if not self.companies_file:
             self.companies_file = self.data_dir / "companies.json"
             print(f"Файл companies.json не найден, будет использован путь: {self.companies_file}")
-        
+
         if not self.reviews_file:
             self.reviews_file = self.data_dir / "reviews.json"
             print(f"Файл reviews.json не найден, будет использован путь: {self.reviews_file}")
@@ -264,7 +264,7 @@ class VspDataTool:
         """
         if not name:
             return None
-            
+
         name = name.lower().strip()
         for vsp in self.companies:
             if name in vsp.get('name', '').lower():
@@ -342,7 +342,7 @@ class VspDataTool:
         ratings = [review.get('rate', 0) for review in reviews if isinstance(review.get('rate'), (int, float))]
         if not ratings:
             return 0.0
-            
+
         return sum(ratings) / len(ratings)
     
     def get_average_rating_by_vsp_name(self, vsp_name: str) -> float:
@@ -383,7 +383,7 @@ def get_vsp_info(state: GraphState) -> GraphState:
             "current_task": "end",
             "attempts": attempts
         }
-    
+
     if not vsp_name:
         # Если имя отделения не указано, запросим его у пользователя
         messages.append(HumanMessage(content="Укажите название отделения для поиска информации"))
@@ -440,7 +440,7 @@ def get_vsp_reviews(state: GraphState) -> GraphState:
         # Добавляем расчет среднего рейтинга
         total_rating = sum(review.get('rate', 0) for review in vsp_reviews if isinstance(review.get('rate'), (int, float)))
         avg_rating = total_rating / len(vsp_reviews) if vsp_reviews else 0
-        
+
         messages.append(AIMessage(content=f"Получено {len(vsp_reviews)} отзывов о отделении {vsp_name}. "
                                  f"Средний рейтинг: {avg_rating:.1f} из 5."))
         
@@ -466,7 +466,7 @@ def analyze_tone_distribution(reviews):
     for review in reviews:
         tone = review.get('tone', 'Не указано')
         tones[tone] = tones.get(tone, 0) + 1
-    
+
     return tones
 
 def analyze_vsp_data(state: GraphState) -> GraphState:
@@ -480,10 +480,10 @@ def analyze_vsp_data(state: GraphState) -> GraphState:
     if vsp_reviews:
         # Средний рейтинг
         avg_rating = sum(review.get('rate', 0) for review in vsp_reviews if isinstance(review.get('rate'), (int, float))) / len(vsp_reviews)
-        
+
         # Распределение по тональности
         tone_distribution = analyze_tone_distribution(vsp_reviews)
-        
+
         summary = f"""
         Средний рейтинг: {avg_rating:.2f}/5
         Всего отзывов: {len(vsp_reviews)}
@@ -491,7 +491,7 @@ def analyze_vsp_data(state: GraphState) -> GraphState:
         Распределение по тональности:
         {", ".join([f"{tone}: {count}" for tone, count in tone_distribution.items()])}
         """
-    
+
     # Запрос к LLM для анализа данных о отделении и отзывов
     analysis_prompt = f"""
     Проанализируй следующую информацию о отделении банка на предмет рисков:
@@ -570,7 +570,7 @@ def create_report(state: GraphState) -> GraphState:
     messages = state["messages"]
     vsp_name = state.get("vsp_name", "")
     vsp_info = state.get("vsp_info", {})
-    
+
     messages.append(HumanMessage(content=f"""
     Создай структурированный отчет о рисках отделения "{vsp_name}" на основе:
     - Анализа: {state['analysis_result']}
@@ -664,7 +664,7 @@ def create_vsp_data_workflow():
             "end": END
         }
     )
-    
+
     workflow.add_conditional_edges(
         "generate_insights",
         should_continue,
@@ -682,7 +682,7 @@ def create_vsp_data_workflow():
             "end": END
         }
     )
-    
+
     # Установка начальной точки
     workflow.set_entry_point("get_vsp_info")
     
@@ -714,30 +714,30 @@ def run_vsp_data_workflow(vsp_name=None):
                 print(f"Найдена информация о отделении {vsp_name}")
             else:
                 print(f"Отделение '{vsp_name}' не найдено в базе данных. Проверим другие отделения.")
-        
+
         final_state = app.invoke(initial_state)
-        
+
         print("\n=== Результаты работы ===")
         if final_state.get("vsp_info"):
             print(f"Информация о отделении: {final_state['vsp_name']}")
         else:
             print("Информация о отделении не найдена")
-            
+
         if final_state.get("vsp_reviews"):
             print(f"Найдено отзывов: {len(final_state['vsp_reviews'])}")
         else:
             print("Отзывы не найдены")
-            
+
         print("\n=== Итоговый отчет о рисках ===")
         print(final_state["final_report"])
-        
+
         return final_state
     except Exception as e:
         print(f"Ошибка при выполнении рабочего процесса: {e}")
-        
+
         # Подробный вывод стека ошибки для отладки
         traceback.print_exc()
-        
+
         # Создаем базовый отчет даже при ошибке
         if vsp_name:
             vsp_info = vsp_data_tool.get_vsp_by_name(vsp_name)
@@ -747,23 +747,23 @@ def run_vsp_data_workflow(vsp_name=None):
                 if vsp_reviews:
                     ratings = [r.get('rate', 0) for r in vsp_reviews if isinstance(r.get('rate'), (int, float))]
                     avg_rating = sum(ratings) / len(ratings) if ratings else 0
-                
+
                 print("\n=== Аварийный отчет о отделении ===")
                 print(f"Отделение: {vsp_name}")
                 print(f"Адрес: {vsp_info.get('address', 'Не указан')}")
                 print(f"Количество отзывов: {len(vsp_reviews)}")
                 print(f"Средний рейтинг: {avg_rating:.1f}/5")
-                
+
                 # Анализируем тональность отзывов
                 tones = {}
                 for review in vsp_reviews:
                     tone = review.get('tone', 'Не указано')
                     tones[tone] = tones.get(tone, 0) + 1
-                
+
                 print("Распределение тональности отзывов:")
                 for tone, count in tones.items():
                     print(f"- {tone}: {count}")
-                
+
                 # Создаем базовый отчет о рисках
                 print("\n--- Базовый отчет о рисках ---")
                 if avg_rating < 3:
@@ -772,7 +772,7 @@ def run_vsp_data_workflow(vsp_name=None):
                     print("Средний репутационный риск: средний рейтинг отзывов")
                 else:
                     print("Низкий репутационный риск: высокий рейтинг отзывов")
-                
+
                 # Ищем потенциальные операционные риски в отзывах
                 operational_risks = []
                 for review in vsp_reviews:
@@ -781,14 +781,14 @@ def run_vsp_data_workflow(vsp_name=None):
                         operational_risks.append("очереди")
                     if any(word in text for word in ['система', 'сбой', 'не работает']):
                         operational_risks.append("технические сбои")
-                
+
                 if operational_risks:
                     print("Обнаружены операционные риски:")
                     for risk in set(operational_risks):
                         print(f"- {risk}")
                 else:
                     print("Явных операционных рисков не обнаружено")
-        
+
         return None
 
 if __name__ == "__main__":
@@ -799,14 +799,14 @@ if __name__ == "__main__":
             print(f"{i+1}. {vsp['name']} - {vsp['address']}")
     except Exception as e:
         print(f"Ошибка при загрузке списка отделений: {e}")
-    
+
     print("\nВыберите опцию:")
     print("1. Ввести название отделения")
     print("2. Выбрать отделение из списка")
     print("3. Запустить в демо-режиме")
-    
+
     choice = input("Ваш выбор (1-3): ").strip()
-    
+
     if choice == "1":
         vsp_name = input("Введите название отделения: ").strip()
         run_vsp_data_workflow(vsp_name if vsp_name else None)
@@ -829,7 +829,7 @@ if __name__ == "__main__":
         print("Запуск в демо-режиме...")
         #global USE_MOCK_LLM
         USE_MOCK_LLM = True
-        
+
         companies = vsp_data_tool.get_all_companies()
         if companies:
             vsp_name = companies[0]["name"]
