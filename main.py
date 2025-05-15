@@ -16,6 +16,10 @@ import os
 from pathlib import Path
 import traceback
 import time
+from dotenv import load_dotenv  # Импортируем функцию загрузки
+
+# Загружаем переменные из .env файла
+load_dotenv()  # По умолчанию ищет файл .env в текущей директории
 
 # Флаг для использования мок-режима (без использования API)
 USE_MOCK_LLM = True
@@ -48,8 +52,6 @@ class MockLLM:
 try:
     # Пробуем инициализировать реальную модель, если не в мок-режиме
     if not USE_MOCK_LLM:
-        # Эти API ключи уже не действительны, замените на свои
-        # или используйте переменные окружения для безопасности
         from openai import OpenAI
         import os
 
@@ -774,6 +776,7 @@ def run_vsp_data_workflow(vsp_name=None):
                     print("Низкий репутационный риск: высокий рейтинг отзывов")
 
                 # Ищем потенциальные операционные риски в отзывах
+                """
                 operational_risks = []
                 for review in vsp_reviews:
                     text = review.get('comment', '').lower()
@@ -788,7 +791,7 @@ def run_vsp_data_workflow(vsp_name=None):
                         print(f"- {risk}")
                 else:
                     print("Явных операционных рисков не обнаружено")
-
+                """
         return None
 
 if __name__ == "__main__":
