@@ -1,0 +1,102 @@
+[
+  {
+    "id": 18436,
+    "number": 18436,
+    "name": "ВСП_1",
+    "address": "ул. Тверская, 12",
+    "geo_position": {
+      "latitude": 55.763305,
+      "longitude": 37.609371
+    }
+  },
+  {
+    "id": 59271,
+    "number": 59271,
+    "name": "ВСП_2",
+    "address": "пр. Мира, 25",
+    "geo_position": {
+      "latitude": 55.779155,
+      "longitude": 37.631936
+    }
+  },
+  {
+    "id": 34782,
+    "number": 34782,
+    "name": "ВСП_3",
+    "address": "ул. Новый Арбат, 15",
+    "geo_position": {
+      "latitude": 55.751933,
+      "longitude": 37.593066
+    }
+  },
+  {
+    "id": 90125,
+    "number": 90125,
+    "name": "ВСП_4",
+    "address": "ул. Покровка, 33",
+    "geo_position": {
+      "latitude": 55.761006,
+      "longitude": 37.650127
+    }
+  },
+  {
+    "id": 63849,
+    "number": 63849,
+    "name": "ВСП_5",
+    "address": "ул. Ленинская Слобода, 19",
+    "geo_position": {
+      "latitude": 55.708303,
+      "longitude": 37.652822
+    }
+  },
+  {
+    "id": 27513,
+    "number": 27513,
+    "name": "ВСП_6",
+    "address": "ул. Марксистская, 5",
+    "geo_position": {
+      "latitude": 55.737182,
+      "longitude": 37.663952
+    }
+  },
+  {
+    "id": 46028,
+    "number": 46028,
+    "name": "ВСП_7",
+    "address": "ул. Варшавское ш., 47",
+    "geo_position": {
+      "latitude": 55.679103,
+      "longitude": 37.630113
+    }
+  },
+  {
+    "id": 81904,
+    "number": 81904,
+    "name": "ВСП_8",
+    "address": "ул. Профсоюзная, 21",
+    "geo_position": {
+      "latitude": 55.675534,
+      "longitude": 37.561320
+    }
+  },
+  {
+    "id": 50367,
+    "number": 50367,
+    "name": "ВСП_9",
+    "address": "ул. Тверская, 25",
+    "geo_position": {
+      "latitude": 55.767200,
+      "longitude": 37.600199
+    }
+  },
+  {
+    "id": 72635,
+    "number": 72635,
+    "name": "ВСП_10",
+    "address": "ул. Маросейка, 9",
+    "geo_position": {
+      "latitude": 55.757744,
+      "longitude": 37.634326
+    }
+  }
+]
