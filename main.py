@@ -267,7 +267,7 @@ class VspDataTool:
         if not name:
             return None
 
-        name = name.lower().strip()
+from openai import OpenAI        name = name.lower().strip()
         for vsp in self.companies:
             if name in vsp.get('name', '').lower():
                 return vsp
