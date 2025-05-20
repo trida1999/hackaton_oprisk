@@ -18,7 +18,7 @@ import traceback
 import time
 
 # Флаг для использования мок-режима (без использования API)
-USE_MOCK_LLM = True
+USE_MOCK_LLM = False
 
 # Создаем имитацию LLM-модели для тестирования без API ключа
 class MockLLM:
