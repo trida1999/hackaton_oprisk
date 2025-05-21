@@ -40,11 +40,12 @@ def get_companies(anyParm: str) -> str:  # Убрали параметр query
     """Возвращает список всех отделений/организаций в формате JSON, для вызова передай любую строку"""
     return CompanyListResponse(companies=companies).json()
 
-# Инструмент для анализа компании
+# Инструмент для анализа компании`
 def analyze_company(company_id: int) -> str:
     """Анализирует компанию по её ID и возвращает результаты анализа"""
-    company_reviews = [r for r in reviews if r['orgId'] == company_id]
-    company = next((c for c in companies if c['id'] == company_id), {})
+    orgId: int = int(company_id)
+    company_reviews = [r for r in reviews if r['orgId'] == orgId]
+    company = next((c for c in companies if c['id'] == orgId), {})
 
     if not company_reviews:
         return CompanyAnalysisResponse(
