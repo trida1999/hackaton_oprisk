@@ -41,7 +41,7 @@ def get_companies(anyParm: str) -> str:  # Убрали параметр query
     return CompanyListResponse(companies=companies).json()
 
 # Инструмент для анализа компании`
-def analyze_company(company_id: int) -> str:
+def analyze_company(company_id: str) -> str:
     """Анализирует компанию по её ID и возвращает результаты анализа"""
     orgId: int = int(company_id)
     company_reviews = [r for r in reviews if r['orgId'] == orgId]
