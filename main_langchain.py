@@ -36,9 +36,15 @@ class CompanyAnalysisResponse(BaseModel):
     risks: List[str] = Field(description="Список основных рисков")
 
 # Инструмент для получения списка компаний
-def get_companies(anyParm: str) -> str:  # Убрали параметр query
-    """Возвращает список всех отделений/организаций в формате JSON, для вызова передай любую строку"""
-    return CompanyListResponse(companies=companies).json()
+def get_companies(anyParm: str) -> str:
+    """Возвращает список всех отделений/организаций в формате: ID Название Адрес"""
+    # Формируем список в нужном формате
+    companies_list = [
+        f"{company['id']} {company['name']} {company['address']}"
+        for company in companies
+    ]
+    # Возвращаем как строку с переносами
+    return "\n".join(companies_list)
 
 # Инструмент для анализа компании`
 def analyze_company(company_id: str) -> str:
@@ -75,7 +81,7 @@ tools = [
     Tool(
         name="get_companies",
         func=get_companies,
-        description="Используется для получения списка всех отделений. принимает 1 входной параметр любая строка."
+        description="Используется для получения списка всех отделений в формате: ID name address. Принимает любую строку как параметр."
     ),
     Tool(
         name="analyze_company",
