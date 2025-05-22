@@ -1,10 +1,10 @@
 from crewai import Agent, Task, Crew, Process
 from langchain_openai import ChatOpenAI
-from openai import OpenAI
-#from langchain.tools import BaseTool, tool
 from typing import Type, Optional, Dict, List
 import json
 from crewai.tools import tool
+from striprtf.striprtf import rtf_to_text
+import chardet
 
 import os
 from dotenv import load_dotenv
@@ -27,6 +27,7 @@ logging.basicConfig(level=logging.INFO)
 
 llm = ChatOpenAI(
     model="openrouter/qwen/qwen3-14b:free",
+    #model="openrouter/qwen/qwen2.5-vl-72b-instruct:free",
     openai_api_base="https://openrouter.ai/api/v1",
     openai_api_key=os.getenv("OPENROUTER_API_KEY"),
     temperature=0.3,
@@ -35,6 +36,21 @@ llm = ChatOpenAI(
         "X-Title": ""  # Название вашего приложения
     }
 )
+
+def read_rtf(file_path):
+    print(f"Чтение файла: {file_path}")
+    with open(file_path, 'rb') as file:
+        raw_content = file.read()
+
+        encoding = chardet.detect(raw_content)['encoding']
+        try:
+            decoded_content = raw_content.decode(encoding or 'cp1251')
+        except UnicodeDecodeError:
+            decoded_content = raw_content.decode('cp1251', errors='replace')
+
+    text = rtf_to_text(decoded_content)
+    print(f"read symbols: {len(text)}");
+    return text
 
 # ----------------------------
 # Исправленные инструменты (совместимый способ)
@@ -50,6 +66,8 @@ def access_data_files(file_name: str) -> Dict:
 @tool
 def access_risk_methodology() -> str:
     """Возвращает ключевые положения методологии 716-П по операционному риску"""
+    #очень большой текс документа, он не влезает в контекст 40К
+    #return read_rtf('data/Положение_Банка_России_от_08_04_2020_N_716_П_ред_от_25_03_1.rtf')
     return """
     Продажа неподходящих продуктов (Unsuitable selling).
 Продажа финансовых продуктов или услуг, не отвечающих интересам клиентов.
@@ -168,7 +186,7 @@ def create_analysis_tasks(question: str) -> List[Task]:
         - Рейтинг отделений от лучшего к худшему
         """
     )
-    
+
     # Задача для риск-ассистента
     risk_analysis_task = Task(
         description=f"""
@@ -192,7 +210,7 @@ def create_analysis_tasks(question: str) -> List[Task]:
         - Рекомендации по снижению рисков
         """
     )
-    
+
     # Задача для агента инсайтов
     insights_task = Task(
         description=f"""
@@ -213,7 +231,7 @@ def create_analysis_tasks(question: str) -> List[Task]:
         - Рекомендации для руководства
         """
     )
-    
+
     # Задача для построения отчетов
     report_task = Task(
         description=f"""
@@ -235,7 +253,7 @@ def create_analysis_tasks(question: str) -> List[Task]:
         - Рекомендации по улучшению
         """
     )
-    
+
     # Задача для критика
     critique_task = Task(
         description=f"""
@@ -257,7 +275,7 @@ def create_analysis_tasks(question: str) -> List[Task]:
         - Общую оценку качества работы команды
         """
     )
-    
+
     return [data_analysis_task, risk_analysis_task, insights_task, report_task, critique_task]
 
 # ----------------------------
@@ -269,7 +287,7 @@ def analyze_bank_reviews(question: str):
     
     # Создаем задачи
     tasks = create_analysis_tasks(question)
-    
+
     # Формируем команду агентов
     crew = Crew(
         agents=[senior_analyst, risk_assistant, insights_agent, report_builder, critic],
@@ -292,6 +310,6 @@ if __name__ == "__main__":
         result = analyze_bank_reviews("Проанализируйте данные из reviews.json и найдите инциденты операционного риска в отделениях")
         #result = crew.kickoff()
         print("\n📊 Результат:", result)
-        
+
     except Exception as e:
         print(f"❌ Ошибка: {e}")
