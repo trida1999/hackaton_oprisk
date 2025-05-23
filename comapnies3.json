@@ -1,0 +1,32 @@
+[
+  {
+    "id": 18436,
+    "number": 18436,
+    "name": "ВСП_1",
+    "address": "ул. Тверская, 12",
+    "geo_position": {
+      "latitude": 55.763305,
+      "longitude": 37.609371
+    }
+  },
+  {
+    "id": 59271,
+    "number": 59271,
+    "name": "ВСП_2",
+    "address": "пр. Мира, 25",
+    "geo_position": {
+      "latitude": 55.779155,
+      "longitude": 37.631936
+    }
+  },
+  {
+    "id": 34782,
+    "number": 34782,
+    "name": "ВСП_3",
+    "address": "ул. Новый Арбат, 15",
+    "geo_position": {
+      "latitude": 55.751933,
+      "longitude": 37.593066
+    }
+  }
+]
