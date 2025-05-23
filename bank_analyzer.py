@@ -59,7 +59,7 @@ def read_rtf(file_path):
 # Способ 1: Использование декоратора @tool (рекомендуемый)
 @tool
 def access_data_files(file_name: str) -> Dict:
-    """Возвращает данные из указанного файла в папке data (companies.json или reviews.json)"""
+    """Возвращает данные из указанного файла в папке data (companies.json или reviews_small.json)"""
     with open(file_name, 'r', encoding='utf-8') as f:
         return json.load(f)
 
@@ -312,11 +312,11 @@ def analyze_bank_reviews(question: str):
         result = crew.kickoff()
 
         # Проверяем результат критика (последняя задача)
-        if "APPROVED" in result.split("\n")[-1]:
+        if "APPROVED" in str(result).split("\n")[-1]:
             approved = True
             final_result = result
         else:
-            critique_feedback = result.split("\n")[-1]
+            critique_feedback = str(result).split("\n")[-1]
             current_revision += 1
             if current_revision < max_revisions:
                 print("🔄 Отправка на доработку...")
@@ -333,7 +333,7 @@ if __name__ == "__main__":
     try:
 
         print("🚀 Запуск анализа...")
-        result = analyze_bank_reviews("Проанализируйте данные из reviews.json и найдите инциденты операционного риска в отделениях")
+        result = analyze_bank_reviews("Проанализируйте данные из reviews_small.json и найдите инциденты операционного риска в отделениях")
         #result = crew.kickoff()
         print("\n📊 Результат:", result)
 
