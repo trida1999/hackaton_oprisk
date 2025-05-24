@@ -1,6 +1,6 @@
 from crewai import Agent, Task, Crew, Process
 from langchain_openai import ChatOpenAI
-from typing import Type, Optional, Dict, List
+from typing import Dict, List, Any
 import json
 from crewai.tools import tool
 from striprtf.striprtf import rtf_to_text
@@ -15,33 +15,32 @@ load_dotenv()
 import logging
 logging.basicConfig(level=logging.INFO)
 
+
+# Глобальный кеш в памяти для доступа к данным в tools
+FILE_CACHE: Dict[str, Any] = {}
+
 # ----------------------------
 # Инициализация LLM
 # ----------------------------
 
-#llm = ChatOpenAI(
-#    openai_api_base="https://openrouter.ai/api/v1",
-#    openai_api_key="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",
-#    model_name="qwen/qwen3-4b:free"
-#)
-
 llm = ChatOpenAI(
-    model="openrouter/qwen/qwen3-14b:free",
-    #model="openrouter/meta-llama/llama-3.3-70b-instruct",
-    #model="openrouter/google/gemini-2.5-flash-preview:thinking",
-    #model="openrouter/qwen/qwen2.5-vl-72b-instruct:free",
+    #model="openrouter/qwen/qwen3-14b:free",
+    model=os.getenv("MODEL_NAME"),
     openai_api_base="https://openrouter.ai/api/v1",
-    openai_api_key=os.getenv("OPENROUTER_API_KEY"),
-    #openai_api_key=os.getenv("GEMINI_2.5_PREVIEW_API_KEY"),
-    temperature=0.3,
-    headers={
-        "HTTP-Referer": "",  # Укажите ваш URL
-        "X-Title": ""  # Название вашего приложения
-    }
+    openai_api_key=os.getenv(os.getenv("API_KEY")),
+    temperature=0.3
 )
 
 def read_rtf(file_path):
     print(f"Чтение файла: {file_path}")
+
+    # проверка наличия данных в локальном кеше
+    if file_path in FILE_CACHE:
+        print(f"cache hit: {file_path}")
+        return FILE_CACHE[file_path]
+    print(f"cache miss: {file_path}")
+
+
     with open(file_path, 'rb') as file:
         raw_content = file.read()
 
@@ -52,7 +51,8 @@ def read_rtf(file_path):
             decoded_content = raw_content.decode('cp1251', errors='replace')
 
     text = rtf_to_text(decoded_content)
-    print(f"read symbols: {len(text)}");
+    FILE_CACHE[file_path] = text
+    print(f"read symbols: {len(text)}")
     return text
 
 
@@ -65,24 +65,36 @@ def read_text_file(file_path: str) -> str:
     Returns:
         Содержимое файла в виде строки
     """
+    # проверка наличия данных в локальном кеше
+    if file_path in FILE_CACHE:
+        print(f"cache hit: {file_path}")
+        return FILE_CACHE[file_path]
+    print(f"cache miss: {file_path}")
     with open(file_path, 'r', encoding='utf-8') as file:
-        return file.read()
+        text = file.read()
+        FILE_CACHE[file_path] = text
+        return text
 
-# ----------------------------
-# Исправленные инструменты (совместимый способ)
-# ----------------------------
+def readJson(file_path: str) -> Dict:
+    # проверка наличия данных в локальном кеше
+    if file_path in FILE_CACHE:
+        print(f"cache hit: {file_path}")
+        return FILE_CACHE[file_path]
+    print(f"cache miss: {file_path}")
+    with open(file_path, 'r', encoding='utf-8') as f:
+        text = json.load(f)
+        FILE_CACHE[file_path] = text
+        return text
 
 @tool
 def access_comments() -> Dict:
     """Возвращает клиентские комментарии о отделениях"""
-    with open("reviews3.json", 'r', encoding='utf-8') as f:
-        return json.load(f)
+    return readJson("reviews3.json")
 
 @tool
 def access_companies() -> Dict:
     """Возвращает общие данные об отделениях для которых существуют комментарии"""
-    with open("companies3.json", 'r', encoding='utf-8') as f:
-        return json.load(f)
+    return readJson("companies3.json")
 
 @tool
 def access_risk_methodology() -> str:
