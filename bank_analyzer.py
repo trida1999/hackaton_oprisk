@@ -250,7 +250,8 @@ def create_analysis_tasks(question: str) -> List[Task]:
         - Ключевые выводы
         - Визуализации данных
         - Рекомендации по улучшению
-        """
+        """,
+        output_file = "report_output.txt"
     )
 
     # Задача для критика
@@ -285,45 +286,60 @@ def create_analysis_tasks(question: str) -> List[Task]:
 
 def analyze_bank_reviews(question: str):
     """Запускает мультиагентный анализ с возможностью доработок"""
-    max_revisions = 3  # Максимальное число доработок
+    max_revisions = 3
     current_revision = 0
     approved = False
-    final_result = None
-    critique_feedback = ""
+    final_report = None
+    last_critique = ""
+    last_report = ""
 
     while not approved and current_revision < max_revisions:
         print(f"\n🔧 Итерация доработки {current_revision + 1}/{max_revisions}")
 
-        # Создаем/обновляем задачи
         tasks = create_analysis_tasks(question)
 
         if current_revision > 0:
-            # Добавляем замечания в задачу report_builder
-            tasks[3].description += f"\n\nЗАМЕЧАНИЯ К ДОРАБОТКЕ:\n{critique_feedback}"
+            tasks[3].description += f"\n\nЗАМЕЧАНИЯ К ДОРАБОТКЕ:\n{last_critique}"
 
-        # Запускаем crew
         crew = Crew(
             agents=[senior_analyst, risk_assistant, insights_agent, report_builder, critic],
             tasks=tasks,
             process=Process.sequential
         )
 
-        result = crew.kickoff()
+        crew.kickoff()
 
-        # Проверяем результат критика (последняя задача)
-        if "APPROVED" in str(result).split("\n")[-1]:
+        # Получаем отчет builder'а (предпоследняя задача)
+        report_content = tasks[-2].output.raw_output if hasattr(tasks[-2].output, 'raw_output') else str(
+            tasks[-2].output)
+        # Получаем замечания критика (последняя задача)
+        critique_result = tasks[-1].output.raw_output if hasattr(tasks[-1].output, 'raw_output') else str(
+            tasks[-1].output)
+
+        last_report = report_content
+        last_critique = critique_result
+
+        if "APPROVED" in critique_result:
             approved = True
-            final_result = result
+            final_report = report_content
         else:
-            critique_feedback = str(result).split("\n")[-1]
             current_revision += 1
             if current_revision < max_revisions:
                 print("🔄 Отправка на доработку...")
 
-    if not approved:
-        final_result = str(result) + "\n\n⚠️ Достигнут лимит доработок. Отчет принят с замечаниями."
+    if approved:
+        result_str = "📋 ФИНАЛЬНАЯ ВЕРСИЯ ОТЧЕТА:\n"
+        result_str += final_report + "\n"
+        return result_str
+    else:
+        result_str = "⚠️ Достигнут лимит доработок. Отчет принят с замечаниями.\n\n"
+        result_str += "📋 ФИНАЛЬНАЯ ВЕРСИЯ ОТЧЕТА C ЗАМЕЧАНИЯМИ:\n"
+        result_str += "──────────────────────────\n"
+        result_str += last_report + "\n\n"
+        result_str += "🔹 ЗАКЛЮЧЕНИЕ КРИТИКА:\n"
+        result_str += last_critique + "\n"
 
-    return final_result
+        return result_str
 
 # ----------------------------
 # Запуск системы
