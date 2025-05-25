@@ -288,7 +288,7 @@ def create_analysis_tasks(question: str) -> List[Task]:
 
 def analyze_bank_reviews(question: str):
     """Запускает мультиагентный анализ с возможностью доработок"""
-    max_revisions = 2  # Максимальное число доработок
+    max_revisions = 3  # Максимальное число доработок
     current_revision = 0
     approved = False
     final_result = None
