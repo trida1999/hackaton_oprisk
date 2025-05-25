@@ -1,6 +1,6 @@
 from crewai import Agent, Task, Crew, Process
 from langchain_openai import ChatOpenAI
-from typing import Type, Optional, Dict, List
+from typing import Dict, List, Any
 import json
 from crewai.tools import tool
 from striprtf.striprtf import rtf_to_text
@@ -15,33 +15,32 @@ load_dotenv()
 import logging
 logging.basicConfig(level=logging.INFO)
 
+
+# Глобальный кеш в памяти для доступа к данным в tools
+FILE_CACHE: Dict[str, Any] = {}
+
 # ----------------------------
 # Инициализация LLM
 # ----------------------------
 
-#llm = ChatOpenAI(
-#    openai_api_base="https://openrouter.ai/api/v1",
-#    openai_api_key="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",
-#    model_name="qwen/qwen3-4b:free"
-#)
-
 llm = ChatOpenAI(
-    model="openrouter/qwen/qwen3-14b:free",
-    #model="openrouter/meta-llama/llama-3.3-70b-instruct",
-    #model="openrouter/google/gemini-2.5-flash-preview:thinking",
-    #model="openrouter/qwen/qwen2.5-vl-72b-instruct:free",
+    #model="openrouter/qwen/qwen3-14b:free",
+    model=os.getenv("MODEL_NAME"),
     openai_api_base="https://openrouter.ai/api/v1",
-    openai_api_key=os.getenv("OPENROUTER_API_KEY"),
-    #openai_api_key=os.getenv("GEMINI_2.5_PREVIEW_API_KEY"),
-    temperature=0.3,
-    headers={
-        "HTTP-Referer": "",  # Укажите ваш URL
-        "X-Title": ""  # Название вашего приложения
-    }
+    openai_api_key=os.getenv(os.getenv("API_KEY")),
+    temperature=0.3
 )
 
 def read_rtf(file_path):
     print(f"Чтение файла: {file_path}")
+
+    # проверка наличия данных в локальном кеше
+    if file_path in FILE_CACHE:
+        print(f"cache hit: {file_path}")
+        return FILE_CACHE[file_path]
+    print(f"cache miss: {file_path}")
+
+
     with open(file_path, 'rb') as file:
         raw_content = file.read()
 
@@ -52,7 +51,8 @@ def read_rtf(file_path):
             decoded_content = raw_content.decode('cp1251', errors='replace')
 
     text = rtf_to_text(decoded_content)
-    print(f"read symbols: {len(text)}");
+    FILE_CACHE[file_path] = text
+    print(f"read symbols: {len(text)}")
     return text
 
 
@@ -65,24 +65,36 @@ def read_text_file(file_path: str) -> str:
     Returns:
         Содержимое файла в виде строки
     """
+    # проверка наличия данных в локальном кеше
+    if file_path in FILE_CACHE:
+        print(f"cache hit: {file_path}")
+        return FILE_CACHE[file_path]
+    print(f"cache miss: {file_path}")
     with open(file_path, 'r', encoding='utf-8') as file:
-        return file.read()
+        text = file.read()
+        FILE_CACHE[file_path] = text
+        return text
 
-# ----------------------------
-# Исправленные инструменты (совместимый способ)
-# ----------------------------
+def readJson(file_path: str) -> Dict:
+    # проверка наличия данных в локальном кеше
+    if file_path in FILE_CACHE:
+        print(f"cache hit: {file_path}")
+        return FILE_CACHE[file_path]
+    print(f"cache miss: {file_path}")
+    with open(file_path, 'r', encoding='utf-8') as f:
+        text = json.load(f)
+        FILE_CACHE[file_path] = text
+        return text
 
 @tool
 def access_comments() -> Dict:
     """Возвращает клиентские комментарии о отделениях"""
-    with open("reviews3.json", 'r', encoding='utf-8') as f:
-        return json.load(f)
+    return readJson("reviews3.json")
 
 @tool
 def access_companies() -> Dict:
     """Возвращает общие данные об отделениях для которых существуют комментарии"""
-    with open("companies3.json", 'r', encoding='utf-8') as f:
-        return json.load(f)
+    return readJson("companies3.json")
 
 @tool
 def access_risk_methodology() -> str:
@@ -100,8 +112,8 @@ def access_wrong_practices() -> str:
 # ----------------------------
 senior_analyst = Agent(
     role='Старший аналитик данных',
-    goal='Анализировать данные отзывов и выявлять ключевые метрики',
-    backstory='Опытный аналитик с 10-летним стажем в банковской сфере',
+    goal='Анализировать данные отзывов и выявлять закономерности, тенденции, ключевые метрики, формировать выводы и рекомендации для улучшения сервиса и принятия решений бизнесом',
+    backstory='Опытный аналитик с 10-летним стажем в банковской сфере, работал в крупнейших российских и международных банках, занимал позицию главного бизнес аналитика в управлении развития розничного бизнеса, кандидат экономических наук, очень ответственный и внимательный к деталям, избегает поверхностных выводов, тщательно проверяет гипотезы',
     tools=[access_comments, access_companies],
     llm=llm,
     verbose=True
@@ -109,9 +121,9 @@ senior_analyst = Agent(
 
 risk_assistant = Agent(
     role='Риск-ассистент',
-    goal='Идентифицировать операционные риски и недобросовестные практики на основе отзывов клиентов',
-    backstory='Специалист по управлению рисками с глубокими знаниями методологии 716-П '
-              'и опытом выявления операционных инцидентов в банковской сфере.',
+    goal='Провести глубокий всесторонний анализ, идентифицировать операционные риски и недобросовестные практики на основе отзывов клиентов',
+    backstory='Специалист по управлению рисками с глубокими знаниями методологии 716-П  '
+              'и значительным опытом выявления операционных рисков в банковской сфере. Является автором методики по выявлению и управлению операционным риском и риском поведения, бывший руководитель отдела риск-менеджмента крупнейших российских банков, выстроил систему мониторинга операционного риска, снизив потери на 30%',
     tools=[access_comments, access_companies, access_risk_methodology, access_wrong_practices],
     verbose=True,
     allow_delegation=False,
@@ -120,9 +132,8 @@ risk_assistant = Agent(
 
 insights_agent = Agent(
     role='Агент выявления инсайтов',
-    goal='Формулировать краткие выводы и ключевые особенности по каждому отделению банка',
-    backstory='Эксперт по интерпретации данных, способный выделять наиболее значимые '
-              'аспекты из большого объема информации и представлять их в сжатом виде.',
+    goal='Выявлять ключевые позитивные и негативные особенности по каждому отделению банка, формулировать краткие информативные выводы',
+    backstory='Эксперт по интерпретации данных, способный выделять наиболее значимые аспекты из большого объема информации и представлять их в сжатом виде, возглавлял аналитические отделы в крупных банках, имеет большой опыт в аналитике данных и выявлении причинно-следственных связей, участвовал в автоматизации алгоритма рекомендаций по принятию управленческих решений.',
     verbose=True,
     allow_delegation=False,
     llm = llm
@@ -130,9 +141,8 @@ insights_agent = Agent(
 
 report_builder = Agent(
     role='Агент построения отчетов',
-    goal='Создавать понятные и структурированные отчеты на основе данных от других агентов',
-    backstory='Профессиональный технический писатель с опытом подготовки аналитических '
-              'отчетов для высшего руководства банка.',
+    goal='На основе данных от других агентов создавать качественные, понятные и структурированные отчеты, отражающие ключевые показатели для принятия оперативных и стратегических решений',
+    backstory='Профессиональный технический писатель с большим опытом подготовки аналитических отчетов для высшего руководства банка, имеет глубокие знания в области построения отчетности, высокий уровень ответственности, внимательность к деталям, был руководителем отдела разработки и внедрения отчетности в Центральном Банке',
     verbose=True,
     allow_delegation=False,
     llm = llm
@@ -140,9 +150,8 @@ report_builder = Agent(
 
 critic = Agent(
     role='Критик',
-    goal='Оценивать качество и полноту аналитических выводов, предоставленных другими агентами',
-    backstory='Независимый эксперт с критическим мышлением, отвечающий за контроль '
-              'качества аналитических материалов перед их представлением руководству.',
+    goal='Оценивать качество и полноту выводов, предоставленных другими агентами, проводя тщательный анализ по всем аспектам, давать проработанные развернутые оценки',
+    backstory='Независимый эксперт с критическим мышлением, отвечающий за контроль качества аналитических материалов перед их представлением руководству. Имеет глубокие знания и богатый опыт в обработке и интерпретации данных и построении аналитики, отличается вниманием к деталям и глубокой проработкой сделанных выводов, возглавлял крупное аналитическое агентство',
     verbose=True,
     allow_delegation=False,
     llm = llm
@@ -276,7 +285,7 @@ def create_analysis_tasks(question: str) -> List[Task]:
 
 def analyze_bank_reviews(question: str):
     """Запускает мультиагентный анализ с возможностью доработок"""
-    max_revisions = 2  # Максимальное число доработок
+    max_revisions = 3  # Максимальное число доработок
     current_revision = 0
     approved = False
     final_result = None
