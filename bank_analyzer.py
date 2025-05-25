@@ -291,56 +291,71 @@ def analyze_bank_reviews(question: str):
     approved = False
     final_report = None
     last_critique = ""
-    last_report = ""
+
+    # Хранилище для контекста между итерациями
+    previous_context = {}
 
     while not approved and current_revision < max_revisions:
         print(f"\n🔧 Итерация доработки {current_revision + 1}/{max_revisions}")
 
+        # Создаем задачи с учетом предыдущих замечаний
         tasks = create_analysis_tasks(question)
 
+        # Добавляем замечания ко всем задачам (кроме критика) при доработке
         if current_revision > 0:
-            tasks[3].description += f"\n\nЗАМЕЧАНИЯ К ДОРАБОТКЕ:\n{last_critique}"
+            for task in tasks[:-1]:  # Все задачи кроме последней (критика)
+                task.description += f"\n\nЗАМЕЧАНИЯ К ДОРАБОТКЕ ИЗ ПРЕДЫДУЩЕЙ ИТЕРАЦИИ:\n{last_critique}"
 
+                # Добавляем контекст из предыдущей итерации
+                if task.agent == senior_analyst:
+                    task.context = previous_context.get('analysis', None)
+                elif task.agent == risk_assistant:
+                    task.context = previous_context.get('risk', None)
+                elif task.agent == insights_agent:
+                    task.context = previous_context.get('insights', None)
+
+        # Запускаем crew
         crew = Crew(
             agents=[senior_analyst, risk_assistant, insights_agent, report_builder, critic],
             tasks=tasks,
-            process=Process.sequential
+            process=Process.sequential,
+            verbose=True  # Включаем подробный вывод
         )
 
-        crew.kickoff()
+        result = crew.kickoff()
+        print(f"\nРезультат выполнения итерации:\n{result}")
 
-        # Получаем отчет builder'а (предпоследняя задача)
-        report_content = tasks[-2].output.raw_output if hasattr(tasks[-2].output, 'raw_output') else str(
-            tasks[-2].output)
-        # Получаем замечания критика (последняя задача)
-        critique_result = tasks[-1].output.raw_output if hasattr(tasks[-1].output, 'raw_output') else str(
-            tasks[-1].output)
+        # Сохраняем контекст для следующей итерации
+        previous_context = {
+            'analysis': tasks[0].output,
+            'risk': tasks[1].output,
+            'insights': tasks[2].output
+        }
 
-        last_report = report_content
-        last_critique = critique_result
+        # Получаем результаты
+        report_content = str(tasks[-2].output)  # Отчет builder'а
+        critique_result = str(tasks[-1].output)  # Заключение критика
 
         if "APPROVED" in critique_result:
             approved = True
             final_report = report_content
         else:
+            last_critique = critique_result
             current_revision += 1
             if current_revision < max_revisions:
-                print("🔄 Отправка на доработку...")
+                print("🔄 Отправка на доработку с учетом замечаний...")
 
     if approved:
-        result_str = "📋 ФИНАЛЬНАЯ ВЕРСИЯ ОТЧЕТА:\n"
-        result_str += final_report + "\n"
-        return result_str
+        return final_report
     else:
         result_str = "⚠️ Достигнут лимит доработок. Отчет принят с замечаниями.\n\n"
         result_str += "📋 ФИНАЛЬНАЯ ВЕРСИЯ ОТЧЕТА C ЗАМЕЧАНИЯМИ:\n"
         result_str += "──────────────────────────\n"
-        result_str += last_report + "\n\n"
+        result_str += report_content + "\n\n"
         result_str += "🔹 ЗАКЛЮЧЕНИЕ КРИТИКА:\n"
         result_str += last_critique + "\n"
 
         return result_str
-
 
 
 
