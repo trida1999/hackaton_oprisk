@@ -54,9 +54,9 @@ shared_memory = SharedMemory()
 #  Инициализация LLM
 # ----------------------------
 llm = ChatOpenAI(
-    model="openrouter/qwen/qwen3-14b:free",  # Убрали префикс "openrouter/"
+    model=os.getenv("MODEL_NAME"),
     openai_api_base="https://openrouter.ai/api/v1",
-    openai_api_key=os.getenv("OPENROUTER_API_KEY"),
+    openai_api_key=os.getenv(os.getenv("API_KEY")),
     temperature=0.3
 )
 
@@ -76,13 +76,13 @@ def readJson(file_path: str) -> Dict:
 def access_comments() -> List[Dict]:
     """Возвращает клиентские комментарии о отделениях"""
     print(f"access_comments")
-    return readJson("reviews3.json")
+    return readJson("data/reviews3.json")
 
 @tool
 def access_companies() -> List[Dict]:
     """Возвращает общие данные об отделениях для которых существуют комментарии"""
     print(f"access_companies")
-    return readJson("companies3.json")
+    return readJson("data/companies3.json")
 
 @tool
 def save_insight(insight: str) -> str:
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     try:
         print("🚀 Запуск анализа...")
         shared_memory.add_conversation("System", "Инициализация анализа")
-        result = analyze_bank_reviews("В каком отделении были инциденты операционного риска за последний месяц?")
+        result = analyze_bank_reviews("Проанализируйте данные из клиентских комментариев и найдите инциденты операционного риска в отделениях")
         print("\n📊 Результат:", result)
     except Exception as e:
         print(f"❌ Ошибка: {e}")

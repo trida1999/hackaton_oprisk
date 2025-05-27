@@ -89,12 +89,12 @@ def readJson(file_path: str) -> Dict:
 @tool
 def access_comments() -> Dict:
     """Возвращает клиентские комментарии о отделениях"""
-    return readJson("reviews3.json")
+    return readJson("data/reviews3.json")
 
 @tool
 def access_companies() -> Dict:
     """Возвращает общие данные об отделениях для которых существуют комментарии"""
-    return readJson("companies3.json")
+    return readJson("data/companies3.json")
 
 @tool
 def access_risk_methodology() -> str:

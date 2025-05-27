@@ -119,7 +119,7 @@ def read_text_file(file_path: str) -> str:
 @tool
 def access_comments() -> Dict:
     """Возвращает клиентские комментарии о отделениях"""
-    with open("reviews3.json", 'r', encoding='utf-8') as f:
+    with open("data/reviews3.json", 'r', encoding='utf-8') as f:
         data = json.load(f)
         shared_memory.add_historical_data("latest_comments", data)
         return data
@@ -127,7 +127,7 @@ def access_comments() -> Dict:
 @tool
 def access_companies() -> Dict:
     """Возвращает общие данные об отделениях для которых существуют комментарии"""
-    with open("companies3.json", 'r', encoding='utf-8') as f:
+    with open("data/companies3.json", 'r', encoding='utf-8') as f:
         data = json.load(f)
         shared_memory.add_historical_data("companies_data", data)
         return data
