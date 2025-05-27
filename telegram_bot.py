@@ -4,15 +4,14 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 import json
 import logging
-from bank_analyzer import analyze_bank_reviews  # Теперь функция возвращает строку
+#from bank_analyzer import analyze_bank_reviews  # Теперь функция возвращает строку
 from telegram.constants import ParseMode
 
 import asyncio
 from typing import Optional
 
-
 # Загрузка вашего существующего кода
-from test import analyze_bank_reviews, shared_memory  # Импортируем основные функции и память
+from main import analyze_bank_reviews, shared_memory  # Импортируем основные функции и память
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -62,6 +61,8 @@ class UserSession:
         self.current_query = None
         self.analysis_in_progress = False
         self.last_results = None
+        self.full_report = None  
+        self.context = ""
 
 async def start(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
@@ -98,6 +99,30 @@ async def handle_callback(update: Update, context: CallbackContext):
     elif query.data == 'show_memory':
         memory_context = shared_memory.get_context()
         await query.edit_message_text(f"🧠 Текущий контекст памяти:\n\n{memory_context[:4000]}...")
+    
+    elif query.data == 'full_report':
+        if session.last_results:
+            chunks = split_message(session.last_results)
+            for chunk in chunks:
+                await query.message.reply_text(chunk)
+        else:
+            await query.edit_message_text("⚠️ Нет доступных результатов для отображения.")
+    elif query.data == 'show_context':
+        # Получаем актуальный контекст из общей памяти
+        current_context = shared_memory.get_context()
+        if current_context:
+            chunks = split_message(current_context)
+            for chunk in chunks:
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text=chunk
+                )
+        else:
+            await query.edit_message_text("⚠️ Контекст пуст.")
+
+    elif query.data == 'clear_context':
+        session.context = ""  # Или session.context = ""
+        await query.edit_message_text("✅ Контекст очищен.")
 
 async def handle_message(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
@@ -120,11 +145,16 @@ async def handle_message(update: Update, context: CallbackContext):
         chunks = split_message(report)
         for chunk in chunks:
             await update.message.reply_text(chunk)
+        session.context = shared_memory.get_context()
             
         # Отдельно показываем кнопки
         keyboard = [
             [InlineKeyboardButton("🔄 Новый анализ", callback_data='start_analysis')],
-            [InlineKeyboardButton("📋 Полный отчет", callback_data='full_report')]
+            [InlineKeyboardButton("📋 Полный отчет", callback_data='full_report')],
+            [InlineKeyboardButton("🧠 Показать контекст", callback_data='show_context')],
+            [InlineKeyboardButton("❌ Очистить контекст", callback_data='clear_context')]
+            
+
         ]
         await update.message.reply_text("Выберите действие:",  reply_markup=InlineKeyboardMarkup(keyboard))        
     except Exception as e:
